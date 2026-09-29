@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111315">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Telegram-бот для частных арендодателей: жилец присылает фото счётчиков, бот считает коммуналку и выставляет счёт.">
+<meta property="og:title" content="СдалБот: коммуналка с жильца без напоминаний и споров">
+<meta property="og:description" content="Жилец присылает фото счётчиков в Telegram. Бот считает коммуналку и выставляет счёт.">
+<meta property="og:image" content="img/hatch.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2716%27 height=%2732%27 fill=%27%231C1F21%27/%3E%3Crect x=%2716%27 width=%2716%27 height=%2732%27 fill=%27%23C4302A%27/%3E%3C/svg%3E">
+<title>СдалБот: коммуналка с жильца без напоминаний и споров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@500;700;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#111315;--panel:#181B1E;--paper:#1F2327;--ink:#ECEFEE;--muted:#9BA3A8;--line:#2A2F33;
+  --accent:#E4574B;--accent-ink:#140E0D;--accent-wash:#3A1E1B;
+  --r:3px;
+  --photo-filter:brightness(.84) contrast(1.06) saturate(.9);
+  --cutout-shadow:drop-shadow(0 28px 36px rgba(0,0,0,.55));
+  --display:"Geologica","Golos Text",system-ui,sans-serif;
+  --text:"Golos Text","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",monospace;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F4F5F3;--panel:#E9ECEA;--paper:#FFFFFF;--ink:#1C1F21;--muted:#586066;--line:#D3D7D6;
+  --accent:#C4302A;--accent-ink:#FFFFFF;--accent-wash:#F6E3E1;
+  --photo-filter:none;--cutout-shadow:drop-shadow(0 22px 28px rgba(28,31,33,.22));
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--text);font-size:17px;line-height:1.6;padding-inline:24px;padding-block:0;accent-color:var(--accent);caret-color:var(--accent)}
+::selection{background:var(--accent);color:var(--accent-ink)}
+.wrap{max-width:1160px;margin:0 auto}
+a{color:inherit;text-underline-offset:.2em}
+h1,h2,h3{margin:0;font-family:var(--display);text-wrap:balance}
+h1{font-size:clamp(34px,3.6vw,48px);font-weight:800;line-height:1.02;letter-spacing:-.035em}
+h2{font-size:clamp(28px,3vw,40px);font-weight:700;line-height:1.08;letter-spacing:-.03em}
+h3{font-size:19px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+p{margin:0;text-wrap:pretty}
+img{display:block;max-width:100%;height:auto}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:72px;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
+.logo-mark{display:inline-flex;font-family:var(--mono);font-size:12px;font-weight:700;line-height:1}
+.logo-mark span{padding:5px 4px;background:var(--ink);color:var(--bg)}
+.logo-mark span+span{background:var(--accent);color:var(--accent-ink)}
+.top-link{display:inline-flex;align-items:center;min-height:44px;font-weight:600;font-size:15px;color:var(--accent);text-decoration:none}
+.top-link:hover{text-decoration:underline}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:58px;padding:0 30px;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:17px;text-decoration:none;white-space:nowrap;transition:transform .2s cubic-bezier(.16,1,.3,1),background-color .2s}
+.btn:hover{transform:translateY(-2px);background:color-mix(in srgb,var(--accent) 88%,var(--ink))}
+.btn:active{transform:translateY(0) scale(.98)}
+
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:64px;align-items:end;padding-block:56px 80px}
+.hero-copy{display:flex;flex-direction:column;gap:26px;padding-bottom:8px}
+.hero-sub{font-size:20px;line-height:1.5;color:var(--muted);max-width:30em}
+.hero-cta{display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.assure{font-size:15px;color:var(--muted);max-width:28rem}
+.assure b{color:var(--ink);font-weight:600}
+.photo{margin:0;display:flex;flex-direction:column;gap:10px}
+.photo img{width:100%;border-radius:var(--r);background:var(--panel);filter:var(--photo-filter)}
+.photo figcaption{font-size:13px;color:var(--muted)}
+
+.chores-sec{padding-block:88px;border-top:1px solid var(--line)}
+.chores-head{display:flex;flex-direction:column;gap:14px;max-width:38rem;margin-bottom:44px}
+.chores{list-style:none;margin:0;padding:0;counter-reset:c;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 56px}
+.chores li{counter-increment:c;display:grid;grid-template-columns:56px 1fr;gap:2px 8px;padding-block:18px;border-top:1px solid var(--line)}
+.chores li::before{content:"0" counter(c);grid-row:span 2;font-family:var(--mono);font-weight:700;font-size:15px;color:var(--accent);padding-top:3px}
+.chores b{font-weight:600}
+.chores span{color:var(--muted);font-size:16px}
+
+.flow{background:var(--panel);margin-inline:-24px;padding:96px 24px}
+.flow-head{display:flex;flex-direction:column;gap:14px;max-width:40rem;margin-bottom:48px}
+.steps{display:flex;flex-direction:column;gap:2px;list-style:none;margin:0;padding:0}
+.step{display:grid;grid-template-columns:120px minmax(0,1fr) minmax(0,1.15fr);gap:32px;align-items:start;background:var(--bg);padding:32px;border-radius:var(--r)}
+.step-who{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--muted);padding-top:4px}
+.step-text{display:flex;flex-direction:column;gap:8px}
+.step-text p{color:var(--muted);font-size:16px}
+.bubble{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;font-size:15px;line-height:1.5;max-width:30rem}
+.bubble .from{display:block;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:30rem}
+.shots figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.shots img{aspect-ratio:1/1;object-fit:cover;width:100%;border-radius:var(--r);background:var(--paper);filter:var(--photo-filter)}
+.shots img.cut{filter:none}
+.shots figcaption{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bill{margin-top:10px;display:grid;gap:2px;font-variant-numeric:tabular-nums}
+.bill div{display:flex;justify-content:space-between;gap:16px}
+.bill .sum{font-weight:600;border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.pay{display:block;margin-top:12px;text-align:center;font-weight:600;font-size:14px;color:var(--accent);border:1px solid var(--accent);border-radius:var(--r);padding:8px}
+
+.proof{display:grid;grid-template-columns:.95fr 1.05fr;gap:64px;align-items:start;padding-block:96px}
+.proof-copy{display:flex;flex-direction:column;gap:28px;position:sticky;top:24px}
+.gains{list-style:none;margin:0;padding:0;display:grid;gap:22px}
+.gains li{display:flex;flex-direction:column;gap:4px;padding-left:18px;border-left:2px solid var(--line)}
+.gains b{font-weight:600;font-size:18px}
+.gains span{color:var(--muted);font-size:16px}
+.receipt{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:32px}
+.receipt-head{display:flex;justify-content:space-between;gap:16px;align-items:baseline;padding-bottom:16px;border-bottom:2px solid var(--ink)}
+.receipt-head h3{font-size:17px}
+.receipt-head span{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.receipt .note{font-size:13px;color:var(--muted);margin-top:14px}
+.receipt-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td{padding:11px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+td.r{text-align:right;padding-left:16px;white-space:nowrap;font-family:var(--mono);font-size:14px}
+.calc{display:block;font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:2px}
+tr.total td{border-bottom:0;padding-top:16px;font-weight:600;font-size:18px}
+tr.total td.r{font-size:18px;color:var(--accent)}
+.odo{display:inline-flex;align-items:flex-end}
+.odo>span:not(.drum){white-space:pre}
+.drum{display:inline-block;height:1.25em;overflow:hidden}
+.drum-col{display:flex;flex-direction:column;line-height:1.25em}
+.drum-col span{height:1.25em}
+
+.band{margin-inline:-24px;margin-block:0;height:clamp(180px,24vw,320px);overflow:hidden}
+.band img{width:100%;height:120%;object-fit:cover;object-position:50% 60%;border-radius:0}
+.band figcaption{padding:10px 24px 0;font-size:13px;color:var(--muted);max-width:1160px;margin:0 auto}
+
+.founder{padding-block:80px 96px}
+.founder blockquote{margin:0;max-width:50rem;display:flex;flex-direction:column;gap:20px}
+.founder blockquote p{font-family:var(--display);font-size:clamp(22px,2.4vw,30px);font-weight:500;line-height:1.35;letter-spacing:-.02em}
+.founder cite{font-style:normal;color:var(--muted);font-size:16px}
+
+.price{padding-block:88px;border-top:1px solid var(--line)}
+.price-head{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--ink)}
+.tier{padding:28px 32px 4px 0;display:flex;flex-direction:column;gap:10px}
+.tier+.tier{padding-left:32px;border-left:1px solid var(--line)}
+.amount{font-family:var(--mono);font-size:clamp(40px,4.4vw,56px);font-weight:700;letter-spacing:-.04em;line-height:1}
+.amount small{font-family:var(--text);font-size:17px;font-weight:500;letter-spacing:0;color:var(--muted)}
+.tier p{color:var(--muted);font-size:16px;max-width:24rem}
+.early{margin-top:40px;display:grid;grid-template-columns:auto 1fr;gap:12px 32px;align-items:center;padding:24px 28px;background:var(--accent-wash);border-left:3px solid var(--accent);border-radius:var(--r)}
+.early .amount{color:var(--accent)}
+.early p{max-width:40rem}
+.early b{font-weight:600}
+
+.faq{background:var(--panel);margin-inline:-24px;padding:96px 24px}
+.faq h2{margin-bottom:40px}
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:0 56px;margin:0}
+.qa div{display:flex;flex-direction:column;gap:8px;padding-block:22px;border-top:1px solid var(--line)}
+.qa dt{font-family:var(--display);font-weight:700;font-size:18px;line-height:1.3;letter-spacing:-.01em}
+.qa dd{margin:0;color:var(--muted);font-size:16px}
+
+.final{display:grid;grid-template-columns:1.3fr .7fr;gap:56px;align-items:center;padding-block:96px}
+.final-copy{display:flex;flex-direction:column;gap:24px;align-items:flex-start}
+.final .photo img{background:none;filter:var(--cutout-shadow);border-radius:0}
+
+footer{border-top:1px solid var(--line);padding-block:28px 40px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--muted)}
+footer strong{color:var(--ink);font-weight:600;font-size:14px}
+
+@media (prefers-reduced-motion:reduce){
+  .btn{transition:none}
+  .btn:hover,.btn:active{transform:none}
+}
+@media (max-width:960px){
+  .tiers{grid-template-columns:1fr}
+  .tier+.tier{padding-left:0;border-left:0;border-top:1px solid var(--line)}
+  .hero,.proof,.final{grid-template-columns:1fr}
+  .hero{gap:40px;padding-block:32px 64px}
+  .proof-copy{position:static}
+  .step{grid-template-columns:1fr;gap:16px;padding:24px}
+}
+@media (max-width:640px){
+  body{padding-inline:16px;font-size:16px}
+  .flow,.faq,.band{margin-inline:-16px}
+  .flow,.faq{padding-inline:16px}
+  .band figcaption{padding-inline:16px}
+  .chores,.qa,.tiers{grid-template-columns:1fr}
+  .tier+.tier{padding-left:0;border-left:0;border-top:1px solid var(--line)}
+  .early{grid-template-columns:1fr;padding:20px}
+  .btn{width:100%}
+  .top-link{display:none}
+  .hero-sub{font-size:18px}
+  .receipt{padding:22px 18px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo"><span class="logo-mark" aria-hidden="true"><span>00</span><span>74</span></span>СдалБот</div>
+    <a class="top-link" href="https://t.me/sdalbot_waitlist_bot?start=landing_top">Получить раннюю цену</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Коммуналка с жильца без напоминаний и споров</h1>
+        <p class="hero-sub">Жилец присылает фото счётчиков в Telegram. Бот считает коммуналку по вашему договору и выставляет ему счёт.</p>
+        <div class="hero-cta">
+          <a class="btn" href="https://t.me/sdalbot_waitlist_bot?start=landing_hero">Получить раннюю цену</a>
+          <p class="assure"><b>Деньги идут от жильца напрямую на ваш счёт, бот их не касается.</b> Первый месяц бесплатно.</p>
+        </div>
+      </div>
+      <figure class="photo">
+        <img src="img/hatch.jpg" width="1280" height="1100" alt="Открытый лючок в кафельной стене ванной: трубы, краны и два счётчика воды">
+        <figcaption>Лючок в ванной. Отсюда жилец каждый месяц достаёт показания.</figcaption>
+      </figure>
+    </section>
+  </main>
+
+  <section class="chores-sec">
+    <div class="chores-head">
+      <h2>Раз в месяц вы работаете бухгалтером</h2>
+      <p class="muted">И так каждый месяц, пока квартира сдаётся. Одна ошибка в расчёте, и разговор с жильцом становится неловким.</p>
+    </div>
+    <ol class="chores">
+      <li><b>Напомнить про показания</b><span>Часто дважды, потому что первое сообщение теряется.</span></li>
+      <li><b>Найти фото в переписке</b><span>Между сообщениями про кран и соседей.</span></li>
+      <li><b>Поднять прошлые показания</b><span>В таблице, заметках или старой квитанции.</span></li>
+      <li><b>Посчитать разницу</b><span>И умножить на тарифы, которые меняются раз в полгода.</span></li>
+      <li><b>Отправить сумму жильцу</b><span>С реквизитами и объяснением, откуда она взялась.</span></li>
+      <li><b>Проверить перевод</b><span>И не забыть выбить чек в «Моём налоге», если вы самозанятый.</span></li>
+    </ol>
+  </section>
+</div>
+
+<section class="flow">
+  <div class="wrap">
+    <div class="flow-head">
+      <h2>Что происходит каждый месяц</h2>
+      <p class="muted">Вы один раз вносите условия договора и отправляете жильцу ссылку на бота. Устанавливать ничего не нужно: бот работает в Telegram.</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-who">1 октября</span>
+        <div class="step-text"><h3>Бот сам напоминает жильцу</h3><p>Жильцу не нужно помнить дату и кому отправлять показания.</p></div>
+        <div class="bubble"><span class="from">СдалБот</span>Добрый день, Андрей. Пришлите, пожалуйста, фото счётчиков воды и света до 3 октября.</div>
+      </li>
+      <li class="step">
+        <span class="step-who">2 октября</span>
+        <div class="step-text"><h3>Жилец присылает фото</h3><p>Как есть, с телефона. Если фото размытое, бот попросит переснять или ввести цифры вручную.</p></div>
+        <div class="shots">
+          <figure><img src="img/cold.jpg" width="420" height="280" alt="Фото счётчика холодной воды крупно, видны цифры на барабанах" loading="lazy"><figcaption>Холодная вода</figcaption></figure>
+          <figure><img class="cut" src="img/hot-dial.webp" width="800" height="800" alt="Фото счётчика горячей воды СГВ-15 крупно, видны цифры на барабанах" loading="lazy"><figcaption>Горячая вода</figcaption></figure>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step-who">2 октября</span>
+        <div class="step-text"><h3>Бот считает и выставляет счёт</h3><p>С разницей к прошлому месяцу и ссылкой на перевод по СБП на ваш счёт.</p></div>
+        <div class="bubble"><span class="from">СдалБот</span>
+          <p>Расход за сентябрь: холодная вода 6,2 м³, горячая 3,1 м³, свет 187 кВт·ч.</p>
+          <div class="bill">
+            <div><span>Вода и водоотведение</span><span>1 687,18 ₽</span></div>
+            <div><span>Электроэнергия</span><span>1 331,44 ₽</span></div>
+            <div><span>Интернет</span><span>690,00 ₽</span></div>
+            <div class="sum"><span>К оплате</span><span>3 708,62 ₽</span></div>
+          </div>
+          <span class="pay">Оплатить через СБП</span>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step-who">3 октября</span>
+        <div class="step-text"><h3>Жилец оплатил, бот напоминает про чек</h3><p>Если вы самозанятый, не нужно держать дату в голове: бот напомнит выбить чек в «Моём налоге» в день оплаты.</p></div>
+        <div class="bubble"><span class="from">СдалБот</span>Андрей перевёл 3 708,62 ₽ по СБП. Не забудьте выбить чек в «Моём налоге» на эту сумму сегодня.</div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="proof">
+    <div class="proof-copy">
+      <h2>Жилец видит, откуда взялась каждая цифра</h2>
+      <ul class="gains">
+        <li><b>Аргумент при споре о залоге</b><span>Все показания, фото и счета хранятся за весь срок аренды. При выезде жильца видно, что и когда было оплачено.</span></li>
+        <li><b>Меньше споров каждый месяц</b><span>Фото, прошлое показание, тариф и сумма лежат в одном сообщении.</span></li>
+        <li><b>Часы экономии на 2-3 квартирах</b><span>Не нужно собирать показания и считать суммы по каждому жильцу отдельно.</span></li>
+      </ul>
+    </div>
+    <div class="receipt">
+      <div class="receipt-head"><h3>Коммуналка за сентябрь, кв. 34</h3><span>сен 2026</span></div>
+      <div class="receipt-scroll">
+        <table>
+          <tbody>
+            <tr><td>Холодная вода<span class="calc">6,2 м³ × 58,24 ₽</span></td><td class="r">361,09 ₽</td></tr>
+            <tr><td>Горячая вода<span class="calc">3,1 м³ × 294,78 ₽</span></td><td class="r">913,82 ₽</td></tr>
+            <tr><td>Водоотведение<span class="calc">9,3 м³ × 44,33 ₽</span></td><td class="r">412,27 ₽</td></tr>
+            <tr><td>Электроэнергия<span class="calc">187 кВт·ч × 7,12 ₽</span></td><td class="r">1 331,44 ₽</td></tr>
+            <tr><td>Интернет<span class="calc">фиксированно</span></td><td class="r">690,00 ₽</td></tr>
+            <tr class="total"><td>К оплате до 5 октября</td><td class="r"><span class="odo">3 708,62 ₽</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Пример расчёта, тарифы условные.</p>
+    </div>
+  </section>
+</div>
+
+<figure class="band">
+  <img src="img/strip.jpg" width="1200" height="350" alt="Два счётчика воды на трубах, крупно видны барабаны с цифрами">
+</figure>
+
+<div class="wrap">
+  <section class="founder">
+    <blockquote>
+      <p>Я сам сдаю квартиру. Каждый месяц собираю показания в переписке и считаю коммуналку в таблице. СдалБот я делаю в первую очередь для себя и открываю его собственникам, которые сдают без агентства.</p>
+      <cite>Максим, автор СдалБота</cite>
+    </blockquote>
+  </section>
+
+  <section class="price">
+    <div class="price-head">
+      <h2>Первый месяц бесплатно</h2>
+      <p class="muted">Дальше меньше одного процента от аренды. Цены после запуска, место в списке ничего не стоит.</p>
+    </div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="amount num">249 ₽ <small>в месяц</small></div>
+        <h3>Первая квартира</h3>
+        <p>Архив показаний и счетов на весь срок аренды, напоминания жильцу, распознавание фото и счёт со ссылкой на СБП.</p>
+      </div>
+      <div class="tier">
+        <div class="amount num">149 ₽ <small>в месяц</small></div>
+        <h3>Каждая следующая</h3>
+        <p>Все квартиры и жильцы в одном боте, выгрузка истории в таблицу.</p>
+      </div>
+      <div class="tier">
+        <div class="amount num">2 390 ₽ <small>в год</small></div>
+        <h3>Первая квартира на год</h3>
+        <p>Два месяца в подарок при оплате сразу за год.</p>
+      </div>
+    </div>
+    <div class="early">
+      <div class="amount num">1 290 ₽</div>
+      <p><b>Первый год для первых 50 собственников из списка.</b> Предоплата по СБП с чеком самозанятого. Если запуск не состоится, вернём деньги.</p>
+    </div>
+  </section>
+</div>
+
+<section class="faq">
+  <div class="wrap">
+    <h2>Частые вопросы</h2>
+    <dl class="qa">
+      <div><dt>Бот принимает деньги за меня?</dt><dd>Нет. Бот формирует счёт и ссылку на перевод по СБП на ваш счёт. Деньги идут напрямую от жильца к вам.</dd></div>
+      <div><dt>Зачем жильцу присылать фото боту, а не вам?</dt><dd>Бот сам напоминает в нужный день, и жилец сразу видит сумму с расчётом по своим показаниям. Устанавливать ничего не нужно, бот работает в Telegram. Вам не нужно разбирать фото в переписке.</dd></div>
+      <div><dt>Жилец оплачивает квитанцию УК целиком?</dt><dd>Это можно указать в условиях. Бот попросит фото квитанции и добавит её сумму в счёт.</dd></div>
+      <div><dt>Что если бот неправильно распознает цифры?</dt><dd>Бот показывает распознанные цифры и сверяет их с прошлым месяцем. Если расход выглядит странно или фото размыто, он спросит вас до отправки счёта, а цифры можно поправить вручную.</dd></div>
+      <div><dt>Подходит для посуточной аренды?</dt><dd>Нет, сервис рассчитан на долгосрочную аренду с ежемесячной оплатой.</dd></div>
+      <div><dt>Когда запуск?</dt><dd>Сейчас собираем список. Первые 50 собственников из списка получат доступ раньше остальных и первый год за 1 290 ₽.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="final">
+    <div class="final-copy">
+      <h2>Пусть в следующем месяце счётчики соберёт бот</h2>
+      <a class="btn" href="https://t.me/sdalbot_waitlist_bot?start=landing_bottom">Получить раннюю цену</a>
+      <p class="assure">Откроется Telegram, нажмите «Старт». Бот сразу подтвердит место в списке.</p>
+    </div>
+    <figure class="photo">
+      <img src="img/hot-cut.webp" width="1000" height="796" alt="Счётчик горячей воды СГВ-15 с латунными штуцерами" loading="lazy">
+    </figure>
+  </section>
+
+  <footer>
+    <strong>СдалБот, 2026</strong>
+    <p><a href="privacy.html">Политика обработки персональных данных</a></p>
+    <p>Фото с Wikimedia Commons, кадрированы: <a href="https://commons.wikimedia.org/wiki/File:Water_supply,_Piping,_Plastic_pipes_in_bathroom,_Water_meters,_Rostov-on-Don,_Russia.jpg">лючок в ванной</a>, Vyacheslav Argenberg, <a href="https://creativecommons.org/licenses/by/4.0/deed.ru">CC BY 4.0</a>. <a href="https://commons.wikimedia.org/wiki/File:%D0%A3%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%BD%D1%8B%D0%B5-%D1%81%D1%87%D0%B5%D1%82%D1%87%D0%B8%D0%BA%D0%B8-%D0%A1%D0%92%D0%9A-15-3-2-%D1%81-%D1%80%D0%B0%D0%B4%D0%B8%D0%BE%D0%BC%D0%BE%D0%B4%D1%83%D0%BB%D0%B5%D0%BC-%D0%A1%D0%A2%D0%A0%D0%98%D0%96.jpg">Счётчики холодной воды</a>, Yuriy Shemchuk, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ru">CC BY-SA 4.0</a>. <a href="https://commons.wikimedia.org/wiki/File:%D0%A1%D1%87%D1%91%D1%82%D1%87%D0%B8%D0%BA_%D0%B2%D0%BE%D0%B4%D1%8B_%D0%A1%D0%93%D0%92_15.JPG">Счётчик СГВ-15</a>, Луносвет, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ru">CC BY-SA 4.0</a>.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/SplitText.min.js"></script>
+<script>
+(() => {
+  if (!window.gsap || !window.ScrollTrigger) return;
+  gsap.registerPlugin(ScrollTrigger);
+  if (window.SplitText) gsap.registerPlugin(SplitText);
+  const ease = "expo.out";
+  const mm = gsap.matchMedia();
+
+  mm.add({
+    motion: "(prefers-reduced-motion: no-preference)",
+    pinnable: "(min-width: 961px) and (min-height: 760px)"
+  }, (ctx) => {
+    const { motion, pinnable } = ctx.conditions;
+    if (!motion) return;
+
+    if (window.SplitText) {
+      SplitText.create(".hero h1", {
+        type: "lines", mask: "lines", autoSplit: true,
+        onSplit: (self) => gsap.from(self.lines, { yPercent: 105, duration: 1.1, stagger: 0.09, ease })
+      });
+    }
+    gsap.timeline({ defaults: { ease } })
+      .fromTo(".hero .photo img", { clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: 1.3 }, 0.1)
+      .from(".hero-sub, .hero-cta", { y: 24, duration: 0.9, stagger: 0.08 }, 0.35);
+
+    if (pinnable) {
+      gsap.timeline({
+        scrollTrigger: { trigger: ".chores-sec", start: "top top", end: "+=110%", pin: true, scrub: 0.6, anticipatePin: 1 }
+      }).from(".chores li", { opacity: 0.35, x: -14, stagger: 0.5, duration: 1, ease: "none" });
+    }
+
+    gsap.utils.toArray(".step").forEach((el) => {
+      gsap.from(el, { y: 56, duration: 1, ease, scrollTrigger: { trigger: el, start: "top 90%" } });
+    });
+    gsap.from(".shots figure", {
+      y: 28, rotate: (i) => (i ? 3 : -3), duration: 1.1, stagger: 0.1, ease,
+      scrollTrigger: { trigger: ".shots", start: "top 85%" }
+    });
+
+    gsap.fromTo(".band img", { yPercent: 0 }, {
+      yPercent: -16, ease: "none",
+      scrollTrigger: { trigger: ".band", start: "top bottom", end: "bottom top", scrub: true }
+    });
+
+    const odo = document.querySelector(".odo");
+    const text = odo ? odo.textContent : "";
+    const receipt = gsap.timeline({ scrollTrigger: { trigger: ".receipt", start: "top 72%" } });
+    receipt.from(".receipt tbody tr", { y: 14, duration: 0.7, stagger: 0.07, ease });
+    if (odo) {
+      odo.textContent = "";
+      odo.setAttribute("aria-label", text);
+      let i = 0;
+      for (const ch of text) {
+        const cell = document.createElement("span");
+        cell.setAttribute("aria-hidden", "true");
+        if (/\d/.test(ch)) {
+          const n = Number(ch);
+          const col = document.createElement("span");
+          col.className = "drum-col";
+          for (let d = 0; d <= 9; d++) {
+            const s = document.createElement("span");
+            s.textContent = d;
+            col.appendChild(s);
+          }
+          cell.className = "drum";
+          cell.appendChild(col);
+          gsap.set(col, { yPercent: -10 * n });
+          receipt.fromTo(col, { yPercent: 0 }, { yPercent: -10 * n, duration: 1.4, ease: "power3.out", immediateRender: false }, 0.35 + i * 0.06);
+          i++;
+        } else {
+          cell.textContent = ch;
+        }
+        odo.appendChild(cell);
+      }
+    }
+    return () => { if (odo) { odo.textContent = text; odo.removeAttribute("aria-label"); } };
+  });
+})();
+</script>
+</body>
+</html>
